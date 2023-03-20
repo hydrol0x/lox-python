@@ -15,14 +15,6 @@ class Pos:
         self.col = col
         self.code = code
 
-    # def advance(self, n):
-    #     # advance by n characters and keep track of position in file
-    #     for i in range(n):
-    #         self.index += 1
-    #         self.col += 1
-    #         if (self.code[self.index] == '\n'):
-    #             self.col = 0
-    #             self.line += 1
     def advance(self, n):
         # advance by n characters and keep track of position in file
         for i in range(n):
