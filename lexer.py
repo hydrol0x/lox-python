@@ -5,7 +5,7 @@ class Token:
         self.value = value
 
     def to_string(self):
-        return f"<{self.type}:{self.value}>"
+        return f"<|{self.type}: {self.value}|>"
 
 
 class Pos:
@@ -31,17 +31,16 @@ class Pos:
             if self.code[self.index] == '\n':
                 self.col = 0
                 self.line += 1
-            print(f"Index: {self.index} Col: {self.col} Line: {self.line}")
 
     def clone(self):
         return Pos(self.index, self.line, self.col, self.code)
 
 
 TOKEN_TYPES = {
-    'number': "1234567890",
-    'operator': ["*", "**", "/", "+", "-"],
-    'lparen': "(",
-    'rparen': ")",
+    'NUMBER': "1234567890",
+    'OPERATOR': ["*", "**", "/", "+", "-"],
+    'LPAREN': "(",
+    'RPAREN': ")",
 }
 
 
@@ -70,51 +69,25 @@ class Lexer:
                 if i < len(self.slice) - 1:
                     # not at end
                     next_char = self.slice[i + 1]
-                print(
-                    f"DEBUG: Processing slice '{self.slice}' at position {i}, token '{token}', next char '{next_char}'")
-                if not next_char.isspace() and next_char is not '':
+                if not next_char.isspace() and next_char != '':
                     continue
                 for _type, pattern in self.TOKEN_TYPES.items():
                     if token in pattern:
                         self.tokens.append(Token(_type, token))
-                        if next_char is not '':
+                        if next_char != '':
                             self.advance(len(token))
                         else:
                             self.slice = ''
-                        print(f"DEBUG: Added token {_type}:{token}")
                         found_token = True
                         break
-                    else:
-                        print(f"DEBUG: Invalid token {token}")
-                        print(f"DEBUG: Tokens so far: {self.tokens}")
-                        token = ""
-                        return f"ERR: INVALID TOKEN {self.tokens}"
+
                 if found_token:
                     break
+                else:
+                    token = ""
+                    return f"ERR: INVALID TOKEN {self.tokens}"
 
-        print(f"DEBUG: Final tokens: {self.tokens}")
         return self.tokens
-
-    # def create_tokens(self):
-    #     while self.slice:
-    #         token = ""
-    #         next_char = ""
-    #         for i, char in enumerate(self.slice):
-    #             token += char
-    #             if i < len(self.slice) - 1:
-    #                 # not at end
-    #                 next_char = self.slice[i + 1]
-    #             if not next_char.isspace():
-    #                 continue
-    #             for _type, pattern in self.TOKEN_TYPES.items():
-    #                 if token in pattern:
-    #                     self.tokens.append(Token(_type, token))
-    #                     self.slice.advance(len(token))
-    #                     break
-    #                 else:
-    #                     return f"ERR: INVALID TOKEN {self.tokens}"
-
-    #     return self.tokens
 
 
 def create_tokens(code):
