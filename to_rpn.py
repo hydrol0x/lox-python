@@ -3,11 +3,9 @@ from token import Token
 from tokenType import TokenType as T
 from ast_printer import AST_printer
 
-printer = AST_printer()
-
 class Convert_RPN(Visitor):
     def rpn_print(self, expr: Expr):
-        return f"Original: {printer.ast_print(expr)} RPN: {expr.accept(self)}"
+        return f"Original: {AST_printer().ast_print(expr)}\nRPN: {expr.accept(self)}"
 
     def visitBinaryExpr(self, expr: Binary):
         return self.RPN(expr.operator.LEXEME, expr.left, expr.right)
@@ -40,14 +38,18 @@ class Convert_RPN(Visitor):
         return output
     
 if __name__ == "__main__":
-    group = Grouping(Binary(Literal(2),Token(T.PLUS, "+", None,1),Literal(3)))
-    binary_left = Binary(Literal(1), Token(T.PLUS, "+", None,1),group)
-    expression = Binary(binary_left,  Token(T.PLUS, "+", None,1),Literal(4))
+    # group = Grouping(Binary(Literal(2),Token(T.PLUS, "+", None,1),Literal(3)))
+    # binary_left = Binary(Literal(1), Token(T.PLUS, "+", None,1),group)
+    # expression = Binary(binary_left,  Token(T.PLUS, "+", None,1),Literal(4))
         # [1 + (2+3)] + 4
         # IDK if this works but it looks ok. I am not sure if that is valid RPN
         # Seems fair since you push [1,2,3] into stack, add [2,3] and then add [1,5] 
+
+    group_left = Grouping(Binary(Literal(1),Token(T.PLUS, "+", None,1),Literal(2)))
+    group_right = Grouping(Binary(Literal(4),Token(T.MINUS, "-", None,1),Literal(3)))
+    expr = Binary(group_left, Token(T.STAR, "*", None, 1), group_right)
     
 
     to_rpn = Convert_RPN()
-    print(to_rpn.rpn_print(expression))
+    print(to_rpn.rpn_print(expr))
 
