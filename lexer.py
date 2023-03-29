@@ -3,7 +3,6 @@ from token import Token
 from error_handler import error,report
 
 class Lexer:
-
     global KEYWORDS 
     KEYWORDS = {
         "and": T.AND,
@@ -95,14 +94,6 @@ class Lexer:
             self.add_token(T.IDENTIFIER)
 
     def multi_comment(self):
-        # while not (self.peek() == '*' and self.peek_next() == '/') and not self.is_at_end():
-        #     if self.peek() == '\n':
-        #         self.line+=1
-        #     self.advance()
-        # if self.is_at_end():
-        #     report(self.line, f"{self.start}-{self.current}", "Unterminated multiline comment.")
-        #     return
-
         counter = 1
         first_comment_line = self.line
         while counter != 0 and not self.is_at_end():
@@ -143,7 +134,7 @@ class Lexer:
             case ';': self.add_token(T.SEMICOLON)
             case '*': 
                 if self.match_next('/'):
-                    error(self.line, "Unexpected close comment `*/`")
+                    error(line=self.line, message="Unexpected close comment `*/`")
                 else:
                     self.add_token(T.STAR)
 

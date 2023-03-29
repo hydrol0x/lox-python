@@ -5,6 +5,9 @@ import random
 from lexer import Lexer
 from error_handler import had_error
 from prompts import PROMPT_LIST
+from expr import Expr
+from parser import Parser
+from ast_printer import AST_printer
 
 
 def run(program):
@@ -14,8 +17,17 @@ def run(program):
     # tokens = program.split()
     # for token in tokens:
         # print(token)
+    printer = AST_printer
     lex = Lexer(program)
-    print([token.to_string() for token in lex.scan_tokens()])
+    tokens = lex.scan_tokens()
+    parser = Parser(tokens)
+    expr = parser.parse()
+    if expr:
+        print(expr.to_string())
+        print(printer.ast_print(expr))
+    else:
+        print("Error in parsing")
+    # print([token.to_string() for token in lex.scan_tokens()])
 
 # def report(self, line: int, where: str, message: str):
 #     raise (f"[line {line} ] Error {where}: {message}")

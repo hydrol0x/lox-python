@@ -7,6 +7,8 @@ class Expr(ABC):
     @abstractmethod
     def accept(self, visitor: Visitor): pass
 
+    @abstractmethod
+    def to_string(self): pass
 
 class Binary(Expr):
     def __init__(self,left: Expr, operator: Token, right: Expr):
@@ -16,6 +18,9 @@ class Binary(Expr):
 
     def accept(self, visitor: Visitor):
         return visitor.visitBinaryExpr(self)
+    
+    def to_string(self):
+        return f"Binary({self.left.to_string()}, {self.operator.to_string()}, {self.right.to_string()})"
 
 class Grouping(Expr):
     def __init__(self,expression: Expr):
@@ -24,12 +29,18 @@ class Grouping(Expr):
     def accept(self, visitor: Visitor):
         return visitor.visitGroupingExpr(self)
 
+    def to_string(self):
+        return f"Grouping({self.expression.to_string()})"
+
 class Literal(Expr):
     def __init__(self,value: object):
         self.value = value
 
     def accept(self, visitor: Visitor):
         return visitor.visitLiteralExpr(self)
+
+    def to_string(self):
+        return f"Literal({self.value})"
 
 class Unary(Expr):
     def __init__(self,operator: Token, right: Expr):
@@ -38,6 +49,9 @@ class Unary(Expr):
 
     def accept(self, visitor: Visitor):
         return visitor.visitUnaryExpr(self)
+
+    def to_string(self):
+        return f"Unary({self.operator.to_string()}, {self.right.to_string()})"
 
 class Visitor:
     @abstractmethod
