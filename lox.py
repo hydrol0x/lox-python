@@ -9,7 +9,6 @@ from expr import Expr
 from parser import Parser
 from ast_printer import AST_printer
 
-
 def run(program):
     if had_error:
         sys.exit(65)
@@ -21,6 +20,7 @@ def run(program):
     expr = parser.parse()
     if expr:
         print(expr.to_string())
+        print(AST_printer().ast_print(expr))
     else:
         print("Error in parsing")
 

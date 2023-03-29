@@ -116,7 +116,7 @@ class Parser:
         while self.match(T.PLUS, T.MINUS):
             # print("Generating term")
             op = self.previous()
-            expr = Binary(expr, op, self.term())
+            expr = Binary(expr, op, self.factor())
         return expr
     
     def factor(self) -> Expr:
