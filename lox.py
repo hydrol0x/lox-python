@@ -14,9 +14,6 @@ def run(program):
     if had_error:
         sys.exit(65)
 
-    # tokens = program.split()
-    # for token in tokens:
-        # print(token)
     printer = AST_printer
     lex = Lexer(program)
     tokens = lex.scan_tokens()
@@ -24,17 +21,8 @@ def run(program):
     expr = parser.parse()
     if expr:
         print(expr.to_string())
-        print(printer.ast_print(expr))
     else:
         print("Error in parsing")
-    # print([token.to_string() for token in lex.scan_tokens()])
-
-# def report(self, line: int, where: str, message: str):
-#     raise (f"[line {line} ] Error {where}: {message}")
-#     self.had_error = True
-
-# def error(self, line: int, message: str):
-#     self.report(line, "", message)
 
 def runFile(path):
     with open(path, "r") as file:

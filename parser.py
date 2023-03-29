@@ -71,64 +71,75 @@ class Parser:
     
     def expression(self) -> Expr:
         # expression -> equality
-        return self.equality()
+        return self.expr_list()
+
+    def expr_list(self) -> Expr:
+        # expression -> expression "," expression
+        # print("Expr_list")
+        expr = self.equality()
+
+        while self.match(T.COMMA):
+            # print("Generating expr_list")
+            op = self.previous()
+            expr = Binary(expr, op, self.equality())
+        return expr
 
     def equality(self) -> Expr:
-        print("Equality")
+        # print("Equality")
         # equality -> comparison ( ( "!=" | "==" ) comparison )*
         expr = self.comparison()
 
         while self.match(T.BANG_EQUAL, T.EQUAL_EQUAL):
-            print("Generating Equality")
+            # print("Generating Equality")
             op = self.previous()
             expr = Binary(expr, op, self.comparison())
         return expr
     
     def comparison(self) -> Expr:
-        print("Comparison")
+        # print("Comparison")
         # comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* 
 
         expr = self.term()
 
         while self.match(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
-            print("Generating Comparison")
+            # print("Generating Comparison")
             op = self.previous()
             expr = Binary(expr, op, self.term())
         return expr
     
     def term(self) -> Expr:
-        print("term")
+        # print("term")
         # term -> factor ( ( "-" | "+" ) factor )* 
 
         expr = self.factor()
 
         while self.match(T.PLUS, T.MINUS):
-            print("Generating term")
+            # print("Generating term")
             op = self.previous()
             expr = Binary(expr, op, self.term())
         return expr
     
     def factor(self) -> Expr:
-        print("Factor")
+        # print("Factor")
 
         expr = self.unary()
 
         while self.match(T.SLASH, T.STAR):
-            print("Generating factor")
+            # print("Generating factor")
             op = self.previous()
             expr = Binary(expr, op, self.unary())
         return expr
  
     def unary(self):
-        print("Unary")
+        # print("Unary")
         if self.match(T.BANG, T.MINUS):
-            print("Generating unary")
+            # print("Generating unary")
             op = self.previous()
             return Unary(op, self.unary())
         return self.primary()
     
     def primary(self):
-        print("Generated Primary")
+        # print("Generated Primary")
         if self.match(T.FALSE): return Literal(False)
         if self.match(T.TRUE): return Literal(True)
         if self.match(T.NIL): return Literal(None)
