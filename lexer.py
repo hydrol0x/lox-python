@@ -14,7 +14,7 @@ class Lexer:
         "fun": T.FUN,
         "if": T.IF,
         "nil": T.NIL,
-        "or": T. OR,
+        "or": T.OR,
         "print": T.PRINT,
         "return": T.RETURN,
         "super": T.SUPER,
