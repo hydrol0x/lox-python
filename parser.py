@@ -94,7 +94,18 @@ class Parser:
 
     def expression(self) -> Expr:
         # expression -> equality
-        return self.equality()
+        return self.expr_list()
+
+    def expr_list(self) -> Expr:
+        # expression -> expression "," expression
+        # print("Expr_list")
+        expr = self.equality()
+
+        while self.match(T.COMMA):
+            # print("Generating expr_list")
+            op = self.previous()
+            expr = Binary(expr, op, self.equality())
+        return expr
 
     def equality(self) -> Expr:
         logging.debug("Equality")
@@ -128,7 +139,7 @@ class Parser:
         while self.match(T.PLUS, T.MINUS):
             logging.debug("Generating term")
             op = self.previous()
-            expr = Binary(expr, op, self.term())
+            expr = Binary(expr, op, self.factor())
         return expr
 
     def factor(self) -> Expr:
