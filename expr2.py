@@ -7,51 +7,53 @@ class Expr(ABC):
     @abstractmethod
     def accept(self, visitor: Visitor): pass
 
-    @abstractmethod
-    def to_string(self): pass
+    class _Binary:
+        pass
 
-class Binary(Expr):
-    def __init__(self,left: Expr, operator: Token, right: Expr):
+    class _Grouping:
+        pass
+
+    class _Literal:
+        pass
+
+    class _Unary:
+        pass
+
+
+class Binary(Expr._Binary, Expr):
+    def __init__(self, left: Expr, operator: Token, right: Expr):
         self.left = left
         self.operator = operator
         self.right = right
 
     def accept(self, visitor: Visitor):
         return visitor.visitBinaryExpr(self)
-    
-    def to_string(self):
-        return f"Binary({self.left.to_string()}, {self.operator.to_string()}, {self.right.to_string()})"
 
-class Grouping(Expr):
-    def __init__(self,expression: Expr):
+
+class Grouping(Expr._Grouping, Expr):
+    def __init__(self, expression: Expr):
         self.expression = expression
 
     def accept(self, visitor: Visitor):
         return visitor.visitGroupingExpr(self)
 
-    def to_string(self):
-        return f"Grouping({self.expression.to_string()})"
 
-class Literal(Expr):
-    def __init__(self,value: object):
+class Literal(Expr._Literal, Expr):
+    def __init__(self, value: object):
         self.value = value
 
     def accept(self, visitor: Visitor):
         return visitor.visitLiteralExpr(self)
 
-    def to_string(self):
-        return f"Literal({self.value})"
 
-class Unary(Expr):
-    def __init__(self,operator: Token, right: Expr):
+class Unary(Expr._Unary, Expr):
+    def __init__(self, operator: Token, right: Expr):
         self.operator = operator
         self.right = right
 
     def accept(self, visitor: Visitor):
         return visitor.visitUnaryExpr(self)
 
-    def to_string(self):
-        return f"Unary({self.operator.to_string()}, {self.right.to_string()})"
 
 class Visitor:
     @abstractmethod
@@ -67,4 +69,7 @@ class Visitor:
     def visitUnaryExpr(self, expr: Unary): pass
 
 
-
+Expr._Binary = Binary
+Expr._Grouping = Grouping
+Expr._Literal = Literal
+Expr._Unary = Unary

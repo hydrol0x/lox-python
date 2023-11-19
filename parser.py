@@ -1,29 +1,51 @@
-from expr import Expr, Binary, Grouping, Literal,Unary
-from token import Token
+import logging
+from expr import Expr, Binary, Grouping, Literal, Unary
+from tokens import Token
 from tokenType import TokenType as T
 from error_handler import error as lox_error
 
-class ParseError(RuntimeError):pass
+logging.basicConfig(level=logging.ERROR)
+
+
+class ParseError(RuntimeError):
+    # TODO: possibly move to error_handler
+    pass
+
 
 class Parser:
-    def __init__(self,tokens: list):
-        self.tokens=tokens
-        self.current=0
+    def __init__(self, tokens: list):
+        logging.debug(f"Tokens: {[token.LEXEME for token in tokens]}")
+        self.tokens = tokens
+        self.current = 0
 
     def parse(self):
+        logging.debug(f"Parsing token {self.tokens[self.current].LEXEME}")
+        logging.debug(f"Line: {self.tokens[self.current].LINE}")
         try:
             return self.expression()
         except ParseError:
             return None
 
+    # test code
+    def parse_multiple(self):
+        expressions = []
+        while not self.is_at_end():
+            try:
+                expr = self.expression()
+                if expr is not None:
+                    expressions.append(expr)
+            except ParseError:
+                self.synchronize()
+        return expressions
+
     def peek(self) -> Token:
         return self.tokens[self.current]
 
     def is_at_end(self) -> bool:
-        return self.peek().TYPE== T.EOF
+        return self.peek().TYPE == T.EOF
 
     def check(self, expected: T) -> bool:
-        return False if self.is_at_end() else self.peek().TYPE == expected 
+        return False if self.is_at_end() else self.peek().TYPE == expected
 
     def previous(self):
         return self.tokens[self.current - 1]
@@ -40,15 +62,16 @@ class Parser:
                 return True
         return False
 
-    def error(self,token: Token, err_message: str) -> ParseError:
-        lox_error(token=token, message=err_message) 
+    def error(self, token: Token, err_message: str) -> ParseError:
+        lox_error(token=token, message=err_message)
         return ParseError()
 
     def synchronize(self):
         self.advance()
 
         while not self.is_at_end():
-            if self.previous().TYPE == T.SEMICOLON: return
+            if self.previous().TYPE == T.SEMICOLON:
+                return
 
             match self.peek().TYPE:
                 case T.CLASS: return
@@ -63,84 +86,85 @@ class Parser:
             self.advance()
 
     def consume(self, token_type: T, err_message: str):
-        if (self.check(token_type)): return self.advance()
+        if (self.check(token_type)):
+            return self.advance()
 
         token = self.peek()
-        raise(self.error(token, err_message))
-    
-    
+        raise (self.error(token, err_message))
+
     def expression(self) -> Expr:
         # expression -> equality
         return self.equality()
 
     def equality(self) -> Expr:
-        print("Equality")
+        logging.debug("Equality")
         # equality -> comparison ( ( "!=" | "==" ) comparison )*
         expr = self.comparison()
 
         while self.match(T.BANG_EQUAL, T.EQUAL_EQUAL):
-            print("Generating Equality")
+            logging.debug("Generating Equality")
             op = self.previous()
             expr = Binary(expr, op, self.comparison())
         return expr
-    
+
     def comparison(self) -> Expr:
-        print("Comparison")
-        # comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* 
+        logging.debug("Comparison")
+        # comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )*
 
         expr = self.term()
 
         while self.match(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
-            print("Generating Comparison")
+            logging.debug("Generating Comparison")
             op = self.previous()
             expr = Binary(expr, op, self.term())
         return expr
-    
+
     def term(self) -> Expr:
-        print("term")
-        # term -> factor ( ( "-" | "+" ) factor )* 
+        logging.debug("Term")
+        # term -> factor ( ( "-" | "+" ) factor )*
 
         expr = self.factor()
 
         while self.match(T.PLUS, T.MINUS):
-            print("Generating term")
+            logging.debug("Generating term")
             op = self.previous()
             expr = Binary(expr, op, self.term())
         return expr
-    
+
     def factor(self) -> Expr:
-        print("Factor")
+        logging.debug("Factor")
 
         expr = self.unary()
 
         while self.match(T.SLASH, T.STAR):
-            print("Generating factor")
+            logging.debug("Generating factor")
             op = self.previous()
             expr = Binary(expr, op, self.unary())
         return expr
- 
+
     def unary(self):
-        print("Unary")
+        logging.debug("Unary")
         if self.match(T.BANG, T.MINUS):
-            print("Generating unary")
+            logging.debug("Generating unary")
             op = self.previous()
             return Unary(op, self.unary())
         return self.primary()
-    
+
     def primary(self):
-        print("Generated Primary")
-        if self.match(T.FALSE): return Literal(False)
-        if self.match(T.TRUE): return Literal(True)
-        if self.match(T.NIL): return Literal(None)
- 
-        if self.match(T.NUMBER, T.STRING): return Literal(self.previous().LITERAL)
+        logging.debug("Generated Primary")
+        if self.match(T.FALSE):
+            return Literal(False)
+        if self.match(T.TRUE):
+            return Literal(True)
+        if self.match(T.NIL):
+            return Literal(None)
+
+        if self.match(T.NUMBER, T.STRING):
+            return Literal(self.previous().LITERAL)
 
         if self.match(T.LEFT_PAREN):
             expr = self.expression()
             self.consume(T.RIGHT_PAREN, "Expect `)` after expression.")
             return Grouping(expr)
 
-
-        raise(self.error(self.peek(), "Expect expression"))
-
-        
+        raise (self.error(self.peek(), "Expect expression"))

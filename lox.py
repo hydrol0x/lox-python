@@ -17,16 +17,19 @@ def run(program):
     # tokens = program.split()
     # for token in tokens:
         # print(token)
-    printer = AST_printer
+    printer = AST_printer()
     lex = Lexer(program)
     tokens = lex.scan_tokens()
     parser = Parser(tokens)
-    expr = parser.parse()
-    if expr:
+    # expr = parser.parse()
+    expressions = parser.parse_multiple()
+
+    print([expr.to_string() for expr in expressions])
+    for expr in expressions:
         print(expr.to_string())
         print(printer.ast_print(expr))
-    else:
-        print("Error in parsing")
+        # printer.ast_print(expr)
+
     # print([token.to_string() for token in lex.scan_tokens()])
 
 # def report(self, line: int, where: str, message: str):
@@ -36,14 +39,16 @@ def run(program):
 # def error(self, line: int, message: str):
 #     self.report(line, "", message)
 
+
 def runFile(path):
     with open(path, "r") as file:
         program = file.read()
         run(program)
 
+
 def runPrompt():
     while (True):
-        prompt = PROMPT_LIST[random.randint(0,len(PROMPT_LIST)-1)]
+        prompt = PROMPT_LIST[random.randint(0, len(PROMPT_LIST)-1)]
         user_in = input(f"{prompt} ->")
         if not user_in and user_in != '':
             break
@@ -61,4 +66,3 @@ elif n == 2:
     runFile(args[1])
 else:
     runPrompt()
-

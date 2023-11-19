@@ -1,9 +1,10 @@
 from expr import Visitor, Expr, Binary, Grouping, Literal, Unary
-from token import Token 
+from tokens import Token
 from tokenType import TokenType as T
 
+
 class AST_printer(Visitor):
-    def ast_print(self, expr):
+    def ast_print(self, expr: Expr):
         return expr.accept(self)
 
     def visitBinaryExpr(self, expr: Binary):
@@ -28,12 +29,12 @@ class AST_printer(Visitor):
 
         return output
 
+
 if __name__ == "__main__":
     expression = Binary(
-        Unary(Token(T.MINUS, "-", None, 1),Literal(123)),
+        Unary(Token(T.MINUS, "-", None, 1), Literal(123)),
         Token(T.STAR, "*", None, 1),
         Grouping(Literal(45.67))
     )
     printer = AST_printer()
     print(printer.ast_print(expression))
-
