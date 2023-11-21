@@ -1,10 +1,9 @@
 import logging
-from expr import Expr, Binary, Grouping, Literal, Unary
+from expr import Expr, Binary, Grouping, Literal, Unary, Variable as VarExpr, Assign
+from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block
 from tokens import Token
 from tokenType import TokenType as T
 from error_handler import error as lox_error
-
-logging.basicConfig(level=logging.ERROR)
 
 
 class ParseError(RuntimeError):
@@ -15,28 +14,15 @@ class ParseError(RuntimeError):
 class Parser:
     def __init__(self, tokens: list):
         logging.debug(f"Tokens: {[token.LEXEME for token in tokens]}")
+        logging.debug(f"Token Types: {[token.TYPE for token in tokens]}")
         self.tokens = tokens
         self.current = 0
 
-    def parse(self):
-        logging.debug(f"Parsing token {self.tokens[self.current].LEXEME}")
-        logging.debug(f"Line: {self.tokens[self.current].LINE}")
-        try:
-            return self.expression()
-        except ParseError:
-            return None
-
-    # test code
-    def parse_multiple(self):
-        expressions = []
-        while not self.is_at_end():
-            try:
-                expr = self.expression()
-                if expr is not None:
-                    expressions.append(expr)
-            except ParseError:
-                self.synchronize()
-        return expressions
+    def parse(self) -> list[Stmt]:
+        statements = []
+        while (not self.is_at_end()):
+            statements.append(self.declaration())
+        return statements
 
     def peek(self) -> Token:
         return self.tokens[self.current]
@@ -47,7 +33,7 @@ class Parser:
     def check(self, expected: T) -> bool:
         return False if self.is_at_end() else self.peek().TYPE == expected
 
-    def previous(self):
+    def previous(self) -> Token:
         return self.tokens[self.current - 1]
 
     def advance(self):
@@ -92,9 +78,71 @@ class Parser:
         token = self.peek()
         raise (self.error(token, err_message))
 
+    def declaration(self) -> Stmt | None:
+        try:
+            if self.match(T.VAR):
+                return self.var_declaration()
+
+            return self.statement()
+        except ParseError as error:
+            self.synchronize()
+            return None
+
+    def var_declaration(self) -> Stmt:
+        name = self.consume(T.IDENTIFIER, "Expected variable name.")
+
+        initializer = None
+        if self.match(T.EQUAL):
+            initializer = self.expression()
+
+        self.consume(T.SEMICOLON, "Expected ';' after variable declaration.")
+        return VarStmt(name, initializer)
+
+    def statement(self) -> Stmt:
+        if self.match(T.PRINT):
+            return self.print_statement()
+        if self.match(T.LEFT_BRACE):
+            return Block(self.block())
+
+        return self.expression_statement()
+
+    def print_statement(self) -> Stmt:
+        value = self.expression()
+        self.consume(T.SEMICOLON, "Expect ';' after value.")
+        return Print(value)
+
+    def expression_statement(self) -> Stmt:
+        value = self.expression()
+        self.consume(T.SEMICOLON, "Expect ';' after value.")
+        return ExpressionStmt(value)
+
+    def block(self) -> list[Stmt]:
+        statements = []
+        while not self.check(T.RIGHT_BRACE) and not self.is_at_end():
+            statements.append(self.declaration())
+
+        self.consume(T.RIGHT_BRACE, "Expect '}' to close block.")
+        return statements
+
     def expression(self) -> Expr:
         # expression -> equality
-        return self.expr_list()
+        return self.assignment()
+
+    def assignment(self) -> Expr:
+        expr = self.expr_list()
+
+        if self.match(T.EQUAL):
+            equals = self.previous()
+            value = self.assignment()
+
+            if isinstance(expr, VarExpr):
+                name = expr.name
+                return Assign(name, value)
+
+            self.error(
+                equals, "Invalid assignment target; expected variable expression.")
+
+        return expr
 
     def expr_list(self) -> Expr:
         # expression -> expression "," expression
@@ -172,6 +220,9 @@ class Parser:
 
         if self.match(T.NUMBER, T.STRING):
             return Literal(self.previous().LITERAL)
+
+        if self.match(T.IDENTIFIER):
+            return VarExpr(self.previous())
 
         if self.match(T.LEFT_PAREN):
             expr = self.expression()

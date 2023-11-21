@@ -1,17 +1,44 @@
 from tokenType import TokenType as T
 from tokens import Token
-from expr import Visitor, Expr, Literal, Unary, Binary, Grouping
+from expr import Assign, Variable as VarExpr, Variable, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping
+from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block
 from error_handler import LoxRuntimeError, runtime_error
+from environment import Environment
 import logging
 
 
-class Interpreter(Visitor):
-    def interpret(self, expr: Expr) -> None:
+class Interpreter(ExprVisitor, StmtVisitor):
+    environment = Environment()
+
+    def interpret(self, statements: list[Stmt]) -> None:
         try:
-            value = self.evaluate(expr)
-            print(self.stringify(value))
+            for statement in statements:
+                self.execute(statement)
         except LoxRuntimeError as error:
             runtime_error(error)
+        except AttributeError:
+            # temp
+            print("Handle NoneType for statement")
+
+    def execute(self, stmt: Stmt) -> None:
+        stmt.accept(self)
+
+    def execute_block(self, statements: list[Stmt], environment: Environment) -> None:
+        previous_env = self.environment
+        logging.debug(f"Current environment is {self.environment.values}")
+
+        try:
+            logging.debug(f"Switching environment to {environment.values}")
+            self.environment = environment
+            logging.debug(f"Environment vals are {self.environment.values}")
+
+            for stmt in statements:
+                self.execute(stmt)
+        finally:
+            logging.debug(
+                f"Switching back to previous_env: {previous_env.values}")
+            self.environment = previous_env
+            logging.debug(f"Environment vals are {self.environment.values}")
 
     def stringify(self, value: object) -> str:
         if value == None:
@@ -73,6 +100,33 @@ class Interpreter(Visitor):
             return False
         return a == b
 
+    def visitBlockStmt(self, stmt: Block) -> None:
+        self.execute_block(stmt.statements, Environment(
+            enclosing=self.environment))
+        return None
+
+    def visitExpressionStmt(self, stmt: ExpressionStmt) -> None:
+        self.evaluate(stmt.expression)
+        return None
+
+    def visitPrintStmt(self, stmt: Print) -> None:
+        value = self.evaluate(stmt.expression)
+        print(self.stringify(value))
+        return None
+
+    def visitVarStmt(self, stmt: VarStmt) -> None:
+        value = None
+        if stmt.initializer != None:
+            value = self.evaluate(stmt.initializer)
+
+        self.environment.define(stmt.name.LEXEME, value)
+        return None
+
+    def visitAssignExpr(self, expr: Assign):
+        value = self.evaluate(expr.value)
+        self.environment.assign(expr.name, value)
+        return value
+
     def visitLiteralExpr(self, expr: Literal) -> object:
         return expr.value
 
@@ -91,6 +145,9 @@ class Interpreter(Visitor):
 
         # Unreachable
         return None
+
+    def visitVariableExpr(self, expr: VarExpr):
+        return self.environment.get(expr.name)
 
     def visitBinaryExpr(self, expr: Binary):
         left = self.evaluate(expr.left)

@@ -4,6 +4,7 @@ import sys
 import random
 from lexer import Lexer
 from error_handler import had_error, had_runtime_error
+from parser import ParseError
 from prompts import PROMPT_LIST
 from expr import Expr
 from parser import Parser
@@ -11,7 +12,7 @@ from ast_printer import AST_printer
 from interpreter import Interpreter
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 
 
 def run(program, interpreter: Interpreter):
@@ -30,11 +31,13 @@ def run(program, interpreter: Interpreter):
     lex = Lexer(program)
     tokens = lex.scan_tokens()
     parser = Parser(tokens)
-    expr = parser.parse()
-    if expr:
-        interpreter.interpret(expr)
-    else:
-        print('Parsing Error')
+    stmts = []
+    try:
+        stmts = parser.parse()
+    except ParseError:
+        print("Parsing error")
+    if stmts:
+        interpreter.interpret(stmts)
 
     # expressions = parser.parse_multiple()
 
@@ -63,11 +66,13 @@ def runFile(path):
 
 def runPrompt():
     while (True):
-        prompt = PROMPT_LIST[random.randint(0, len(PROMPT_LIST)-1)]
-        user_in = input(f"{prompt} ->")
+        # prompt = PROMPT_LIST[random.randint(0, len(PROMPT_LIST)-1)]
+        prompt = '[plox]'
+        user_in = input(f"{prompt} -> ")
         if not user_in and user_in != '':
             break
         interpreter = Interpreter()
+        # TODO: add a 'REPL' bool to interpreter that, if enabled, has extra logic to process raw expressions as well
         run(user_in, interpreter)
         had_error = False
 
