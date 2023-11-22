@@ -1,6 +1,6 @@
 import logging
-from expr import Expr, Binary, Grouping, Literal, Unary, Variable as VarExpr, Assign
-from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block
+from expr import Expr, Binary, Grouping, Literal, Unary, Variable as VarExpr, Assign, Logical
+from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block, If, While
 from tokens import Token
 from tokenType import TokenType as T
 from error_handler import error as lox_error
@@ -99,12 +99,80 @@ class Parser:
         return VarStmt(name, initializer)
 
     def statement(self) -> Stmt:
+        if self.match(T.FOR):
+            return self.for_statement()
+        if self.match(T.IF):
+            return self.if_statement()
         if self.match(T.PRINT):
             return self.print_statement()
+        if self.match(T.WHILE):
+            return self.while_statement()
         if self.match(T.LEFT_BRACE):
             return Block(self.block())
 
         return self.expression_statement()
+
+    def for_statement(self) -> Stmt:
+        self.consume(
+            T.LEFT_PAREN, "Expected '(' to enclose conditional expression after 'for'."
+        )
+        initializer = None
+        if self.match(T.SEMICOLON):
+            pass
+        elif self.match(T.VAR):
+            initializer = self.var_declaration()
+        else:
+            initializer = self.expression_statement()
+
+        condition = None
+        if not self.check(T.SEMICOLON):
+            condition = self.expression()
+        self.consume(T.SEMICOLON, "Expected ';' after for loop condition.")
+
+        increment = None
+        if not self.check(T.RIGHT_PAREN):
+            increment = self.expression()
+        self.consume(T.RIGHT_PAREN, "Expected ')' after for loop clauses.")
+
+        body = self.statement()
+
+        if increment:
+            body = Block([body, ExpressionStmt(increment)])
+
+        if condition == None:
+            condition = Literal(True)
+
+        body = While(condition, body)
+
+        if initializer:
+            body = Block([initializer, body])
+
+        return body
+
+    def while_statement(self) -> Stmt:
+        self.consume(
+            T.LEFT_PAREN, "Expected '(' to enclose conditional expression after 'while'."
+        )
+        condition = self.expression()
+        self.consume(
+            T.RIGHT_PAREN, "Expected ')' after 'while' condition"
+        )
+        body = self.statement()
+
+        return While(condition, body)
+
+    def if_statement(self) -> Stmt:
+        self.consume(
+            T.LEFT_PAREN, "Expected '(' to enclose conditional expression after 'if'.")
+        condition = self.expression()
+        self.consume(
+            T.RIGHT_PAREN, "Expected ')' after 'if' condition.")
+        then_branch = self.statement()
+        else_branch = None
+        if self.match(T.ELSE):
+            else_branch = self.statement()
+
+        return If(condition, then_branch, else_branch)
 
     def print_statement(self) -> Stmt:
         value = self.expression()
@@ -129,7 +197,7 @@ class Parser:
         return self.assignment()
 
     def assignment(self) -> Expr:
-        expr = self.expr_list()
+        expr = self.or_expr()
 
         if self.match(T.EQUAL):
             equals = self.previous()
@@ -141,6 +209,26 @@ class Parser:
 
             self.error(
                 equals, "Invalid assignment target; expected variable expression.")
+
+        return expr
+
+    def or_expr(self) -> Expr:
+        expr = self.and_expr()
+
+        while self.match(T.OR):
+            or_op = self.previous()
+            right = self.and_expr()
+            expr = Logical(expr, or_op, right)
+
+        return expr
+
+    def and_expr(self) -> Expr:
+        expr = self.expr_list()
+
+        while self.match(T.AND):
+            and_op = self.previous()
+            right = self.expr_list()
+            expr = Logical(expr, and_op, right)
 
         return expr
 

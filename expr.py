@@ -58,6 +58,19 @@ class Literal(Expr):
         return f"Literal({self.value})"
 
 
+class Logical(Expr):
+    def __init__(self, left: Expr, operator: Token, right: Expr):
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+    def accept(self, visitor: Visitor):
+        return visitor.visitLogicalExpr(self)
+
+    def to_string(self):
+        return f"Logical({self.left.to_string()}, {self.operator.to_string()}, {self.right.to_string()})"
+
+
 class Unary(Expr):
     def __init__(self, operator: Token, right: Expr):
         self.operator = operator
@@ -99,3 +112,6 @@ class Visitor:
 
     @abstractmethod
     def visitAssignExpr(self, expr: Assign): pass
+
+    @abstractmethod
+    def visitLogicalExpr(self, expr: Logical): pass

@@ -39,23 +39,6 @@ def run(program, interpreter: Interpreter):
     if stmts:
         interpreter.interpret(stmts)
 
-    # expressions = parser.parse_multiple()
-
-    # print([expr.to_string() for expr in expressions])
-    # for expr in expressions:
-    #     print(expr.to_string())
-    #     print(printer.ast_print(expr))
-    #     # printer.ast_print(expr)
-
-    # print([token.to_string() for token in lex.scan_tokens()])
-
-# def report(self, line: int, where: str, message: str):
-#     raise (f"[line {line} ] Error {where}: {message}")
-#     self.had_error = True
-
-# def error(self, line: int, message: str):
-#     self.report(line, "", message)
-
 
 def runFile(path):
     with open(path, "r") as file:

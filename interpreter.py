@@ -1,7 +1,7 @@
 from tokenType import TokenType as T
 from tokens import Token
-from expr import Assign, Variable as VarExpr, Variable, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping
-from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block
+from expr import Assign, Variable as VarExpr, Variable, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping, Logical
+from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block, If, While
 from error_handler import LoxRuntimeError, runtime_error
 from environment import Environment
 import logging
@@ -109,6 +109,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self.evaluate(stmt.expression)
         return None
 
+    def visitIfStmt(self, stmt: If) -> None:
+        condition = self.is_truthy(self.evaluate(stmt.condition))
+        if condition:
+            self.execute(stmt.then_branch)
+        elif stmt.else_branch:
+            self.execute(stmt.else_branch)
+
     def visitPrintStmt(self, stmt: Print) -> None:
         value = self.evaluate(stmt.expression)
         print(self.stringify(value))
@@ -122,6 +129,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self.environment.define(stmt.name.LEXEME, value)
         return None
 
+    def visitWhileStmt(self, stmt: While) -> None:
+        while self.is_truthy(self.evaluate(stmt.condition)):
+            self.execute(stmt.body)
+
+        return None
+
     def visitAssignExpr(self, expr: Assign):
         value = self.evaluate(expr.value)
         self.environment.assign(expr.name, value)
@@ -129,6 +142,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def visitLiteralExpr(self, expr: Literal) -> object:
         return expr.value
+
+    def visitLogicalExpr(self, expr: Logical) -> object:
+        left = self.evaluate(expr.left)
+
+        if expr.operator.TYPE == T.OR:
+            if self.is_truthy(left):
+                return (left)
+        else:
+            if (not self.is_truthy(left)):
+                return (left)
+
+        return self.evaluate(expr.right)
 
     def visitGroupingExpr(self, expr: Grouping) -> object:
         return self.evaluate(expr.expression)
