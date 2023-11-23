@@ -1,9 +1,9 @@
 import logging
 from expr import Expr, Binary, Grouping, Literal, Unary, Variable as VarExpr, Assign, Logical
-from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block, If, While
+from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block, If, While, Break
 from tokens import Token
 from tokenType import TokenType as T
-from error_handler import error as lox_error
+from error_handler import error as lox_error, BreakException
 
 
 class ParseError(RuntimeError):
@@ -78,12 +78,12 @@ class Parser:
         token = self.peek()
         raise (self.error(token, err_message))
 
-    def declaration(self) -> Stmt | None:
+    def declaration(self, in_loop: bool = False) -> Stmt | None:
         try:
             if self.match(T.VAR):
                 return self.var_declaration()
 
-            return self.statement()
+            return self.statement(in_loop)
         except ParseError as error:
             self.synchronize()
             return None
@@ -98,19 +98,31 @@ class Parser:
         self.consume(T.SEMICOLON, "Expected ';' after variable declaration.")
         return VarStmt(name, initializer)
 
-    def statement(self) -> Stmt:
+    def statement(self, in_loop: bool) -> Stmt:
+        if self.check(T.BREAK):
+            return self.break_statement(in_loop)
         if self.match(T.FOR):
             return self.for_statement()
         if self.match(T.IF):
-            return self.if_statement()
+            return self.if_statement(in_loop)
         if self.match(T.PRINT):
             return self.print_statement()
         if self.match(T.WHILE):
             return self.while_statement()
         if self.match(T.LEFT_BRACE):
-            return Block(self.block())
+            return Block(self.block(in_loop))
 
         return self.expression_statement()
+
+    def break_statement(self, in_loop: bool) -> Stmt:
+        if not in_loop:
+            raise self.error(
+                self.peek(), "Expected 'break' to be inside of a loop.")
+        self.consume(
+            T.BREAK, "Unreachable; should have already checked for `break` with self.check()")
+        self.consume(T.SEMICOLON, "Expected ';' after 'break'.")
+
+        return Break()
 
     def for_statement(self) -> Stmt:
         self.consume(
@@ -134,7 +146,7 @@ class Parser:
             increment = self.expression()
         self.consume(T.RIGHT_PAREN, "Expected ')' after for loop clauses.")
 
-        body = self.statement()
+        body = self.statement(in_loop=True)
 
         if increment:
             body = Block([body, ExpressionStmt(increment)])
@@ -150,6 +162,7 @@ class Parser:
         return body
 
     def while_statement(self) -> Stmt:
+
         self.consume(
             T.LEFT_PAREN, "Expected '(' to enclose conditional expression after 'while'."
         )
@@ -157,20 +170,21 @@ class Parser:
         self.consume(
             T.RIGHT_PAREN, "Expected ')' after 'while' condition"
         )
-        body = self.statement()
+
+        body = self.statement(in_loop=True)
 
         return While(condition, body)
 
-    def if_statement(self) -> Stmt:
+    def if_statement(self, in_loop: bool) -> Stmt:
         self.consume(
             T.LEFT_PAREN, "Expected '(' to enclose conditional expression after 'if'.")
         condition = self.expression()
         self.consume(
             T.RIGHT_PAREN, "Expected ')' after 'if' condition.")
-        then_branch = self.statement()
+        then_branch = self.statement(in_loop)
         else_branch = None
         if self.match(T.ELSE):
-            else_branch = self.statement()
+            else_branch = self.statement(in_loop)
 
         return If(condition, then_branch, else_branch)
 
@@ -184,10 +198,10 @@ class Parser:
         self.consume(T.SEMICOLON, "Expect ';' after value.")
         return ExpressionStmt(value)
 
-    def block(self) -> list[Stmt]:
+    def block(self, in_loop: bool) -> list[Stmt]:
         statements = []
         while not self.check(T.RIGHT_BRACE) and not self.is_at_end():
-            statements.append(self.declaration())
+            statements.append(self.declaration(in_loop))
 
         self.consume(T.RIGHT_BRACE, "Expect '}' to close block.")
         return statements

@@ -21,6 +21,7 @@ class Lexer:
         "this": T.THIS,
         "true": T.TRUE,
         "var": T.VAR,
+        "break": T.BREAK,
         "while": T.WHILE,
     }
 

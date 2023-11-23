@@ -1,7 +1,7 @@
 from tokenType import TokenType as T
 from tokens import Token
-from expr import Assign, Variable as VarExpr, Variable, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping, Logical
-from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block, If, While
+from expr import Assign, Variable as VarExpr, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping, Logical
+from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block, If, While, Break
 from error_handler import LoxRuntimeError, runtime_error
 from environment import Environment
 import logging
@@ -116,6 +116,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif stmt.else_branch:
             self.execute(stmt.else_branch)
 
+    def visitBreakStmt(self, stmt: Break) -> None:
+        pass
+
     def visitPrintStmt(self, stmt: Print) -> None:
         value = self.evaluate(stmt.expression)
         print(self.stringify(value))
@@ -131,6 +134,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def visitWhileStmt(self, stmt: While) -> None:
         while self.is_truthy(self.evaluate(stmt.condition)):
+            if not stmt.body:
+                print("DEBUG: no body found")
+                return
+
             self.execute(stmt.body)
 
         return None

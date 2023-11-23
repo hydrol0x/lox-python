@@ -30,6 +30,7 @@ def run(program, interpreter: Interpreter):
     printer = AST_printer()
     lex = Lexer(program)
     tokens = lex.scan_tokens()
+
     parser = Parser(tokens)
     stmts = []
     try:

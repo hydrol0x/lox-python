@@ -8,6 +8,9 @@ class Stmt(ABC):
     @abstractmethod
     def accept(self, visitor: Visitor): pass
 
+    @abstractmethod
+    def to_string(self) -> str: pass
+
 
 class Block(Stmt):
     def __init__(self, statements: list[Stmt]):
@@ -16,6 +19,9 @@ class Block(Stmt):
     def accept(self, visitor: Visitor):
         return visitor.visitBlockStmt(self)
 
+    def to_string(self) -> str:
+        return f"Block({[statement.to_string() for statement in self.statements]})"
+
 
 class ExpressionStmt(Stmt):
     def __init__(self, expression: Expr):
@@ -23,6 +29,9 @@ class ExpressionStmt(Stmt):
 
     def accept(self, visitor: Visitor):
         return visitor.visitExpressionStmt(self)
+
+    def to_string(self) -> str:
+        return f"ExprStmt({self.expression.to_string()})"
 
 
 class If(Stmt):
@@ -34,6 +43,9 @@ class If(Stmt):
     def accept(self, visitor: Visitor):
         return visitor.visitIfStmt(self)
 
+    def to_string(self) -> str:
+        return f"If({self.condition.to_string()}, {self.then_branch.to_string()}, {None if not self.else_branch else self.else_branch.to_string()})"
+
 
 class Print(Stmt):
     def __init__(self, expression: Expr):
@@ -41,6 +53,9 @@ class Print(Stmt):
 
     def accept(self, visitor: Visitor):
         return visitor.visitPrintStmt(self)
+
+    def to_string(self) -> str:
+        return f"Print({self.expression.to_string()})"
 
 
 class Var(Stmt):
@@ -51,14 +66,28 @@ class Var(Stmt):
     def accept(self, visitor: Visitor):
         return visitor.visitVarStmt(self)
 
+    def to_string(self) -> str:
+        return f"VarDec({self.name.to_string()}, {None if not self.initializer else self.initializer.to_string()})"
+
 
 class While(Stmt):
-    def __init__(self, condition: Expr, body: Stmt):
+    def __init__(self, condition: Expr, body: Stmt | None):
         self.condition = condition
         self.body = body
 
     def accept(self, visitor: Visitor):
         return visitor.visitWhileStmt(self)
+
+    def to_string(self) -> str:
+        return f"While({self.condition.to_string()}, {None if not self.body else self.body.to_string()})"
+
+
+class Break(Stmt):
+    def accept(self, visitor: Visitor):
+        return visitor.visitBreakStmt(self)
+
+    def to_string(self) -> str:
+        return f"Break()"
 
 
 class Visitor:
@@ -79,3 +108,6 @@ class Visitor:
 
     @abstractmethod
     def visitWhileStmt(self, stmt: While): pass
+
+    @abstractmethod
+    def visitBreakStmt(self, stmt: Break): pass

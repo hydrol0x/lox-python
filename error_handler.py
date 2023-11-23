@@ -36,3 +36,10 @@ class LoxRuntimeError(RuntimeError):
 def runtime_error(error: LoxRuntimeError):
     print(f'[line {error.token.LINE};] RuntimeError: {error.message}')
     had_runtime_error = True
+
+
+class BreakException(SyntaxError):
+    def __init__(self, token: Token, message: str):
+        self.token = token
+        self.message = message
+        self.SyntaxError = SyntaxError(message)

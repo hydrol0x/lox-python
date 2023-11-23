@@ -91,7 +91,7 @@ class Variable(Expr):
         return visitor.visitVariableExpr(self)
 
     def to_string(self):
-        return f"Variable({self.name})"
+        return f"VarExpr({self.name.to_string()})"
 
 
 class Visitor:

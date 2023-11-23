@@ -47,5 +47,6 @@ class TokenType(Enum):
     TRUE = 36
     VAR = 37
     WHILE = 38
+    BREAK = 39
 
-    EOF = 39
+    EOF = 40
