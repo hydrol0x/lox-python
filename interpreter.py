@@ -6,6 +6,8 @@ from error_handler import LoxRuntimeError, runtime_error
 from environment import Environment
 import logging
 
+class BreakException(RuntimeError): # Used to jump if `break` encountered.
+    pass
 
 class Interpreter(ExprVisitor, StmtVisitor):
     environment = Environment()
@@ -117,7 +119,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             self.execute(stmt.else_branch)
 
     def visitBreakStmt(self, stmt: Break) -> None:
-        pass
+        raise BreakException
 
     def visitPrintStmt(self, stmt: Print) -> None:
         value = self.evaluate(stmt.expression)
@@ -138,7 +140,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 print("DEBUG: no body found")
                 return
 
-            self.execute(stmt.body)
+            try:
+                self.execute(stmt.body)
+            except BreakException:
+                break
 
         return None
 
