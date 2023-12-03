@@ -1,6 +1,6 @@
 import logging
-from expr import Expr, Binary, Grouping, Literal, Unary, Variable as VarExpr, Assign, Logical
-from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block, If, While, Break
+from expr import Expr, Binary, Grouping, Literal, Unary, Variable as VarExpr, Assign, Logical, Call
+from stmt import Stmt, Print, ExpressionStmt, Var as VarStmt, Block, If, While, Break, Function, Return
 from tokens import Token
 from tokenType import TokenType as T
 from error_handler import error as lox_error, BreakException
@@ -80,6 +80,7 @@ class Parser:
 
     def declaration(self, in_loop: bool = False) -> Stmt | None:
         try:
+            if self.match(T.FUN): return self.function("function", in_loop) 
             if self.match(T.VAR):
                 return self.var_declaration()
 
@@ -107,6 +108,8 @@ class Parser:
             return self.if_statement(in_loop)
         if self.match(T.PRINT):
             return self.print_statement()
+        if self.match(T.RETURN):
+            return self.return_statement()
         if self.match(T.WHILE):
             return self.while_statement()
         if self.match(T.LEFT_BRACE):
@@ -193,10 +196,44 @@ class Parser:
         self.consume(T.SEMICOLON, "Expect ';' after value.")
         return Print(value)
 
+    def return_statement(self) -> Stmt:
+        keyword = self.previous()
+
+        value = None
+        if not self.check(T.SEMICOLON):
+            value = self.expression()
+        self.consume(T.SEMICOLON, "Expected ';' after return value.")
+        
+        return Return(keyword, value) 
+
     def expression_statement(self) -> Stmt:
         value = self.expression()
         self.consume(T.SEMICOLON, "Expect ';' after value.")
         return ExpressionStmt(value)
+
+    def function(self, kind:str, in_loop: bool) -> Stmt:
+        name = self.consume(T.IDENTIFIER, f"Expect {kind} name")
+        self.consume(T.LEFT_PAREN, f"Expect '(' following {kind} name")
+        params = []
+
+        if not self.check(T.RIGHT_PAREN):
+            while (True):
+                if len(params) >= 255:
+                    self.error(self.peek(), "Cannot have more than 255 parameters.")
+
+                params.append(self.consume(T.IDENTIFIER, "Expect parameter name."))
+                
+                if not self.match(T.COMMA):
+                    break
+            
+        self.consume(T.RIGHT_PAREN, "Expect ')' after parameters.")   
+
+        self.consume(T.LEFT_BRACE, "Expect " + "'{' " + f"to open {kind} block.")
+        body = self.block(in_loop)
+
+        return Function(name, params, body)
+
+
 
     def block(self, in_loop: bool) -> list[Stmt]:
         statements = []
@@ -237,82 +274,98 @@ class Parser:
         return expr
 
     def and_expr(self) -> Expr:
-        expr = self.expr_list()
+        expr = self.equality()
 
         while self.match(T.AND):
             and_op = self.previous()
-            right = self.expr_list()
+            right = self.equality()
             expr = Logical(expr, and_op, right)
 
         return expr
 
-    def expr_list(self) -> Expr:
-        # expression -> expression "," expression
-        # print("Expr_list")
-        expr = self.equality()
+    # def expr_list(self) -> Expr:
+    #     # expression -> expression "," expression
+    #     # print("Expr_list")
+    #     expr = self.equality()
 
-        while self.match(T.COMMA):
-            # print("Generating expr_list")
-            op = self.previous()
-            expr = Binary(expr, op, self.equality())
-        return expr
+    #     while self.match(T.COMMA):
+    #         # print("Generating expr_list")
+    #         op = self.previous()
+    #         expr = Binary(expr, op, self.equality())
+    #     return expr
 
     def equality(self) -> Expr:
-        logging.debug("Equality")
         # equality -> comparison ( ( "!=" | "==" ) comparison )*
         expr = self.comparison()
 
         while self.match(T.BANG_EQUAL, T.EQUAL_EQUAL):
-            logging.debug("Generating Equality")
             op = self.previous()
             expr = Binary(expr, op, self.comparison())
         return expr
 
     def comparison(self) -> Expr:
-        logging.debug("Comparison")
         # comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )*
 
         expr = self.term()
 
         while self.match(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
-            logging.debug("Generating Comparison")
             op = self.previous()
             expr = Binary(expr, op, self.term())
         return expr
 
     def term(self) -> Expr:
-        logging.debug("Term")
         # term -> factor ( ( "-" | "+" ) factor )*
 
         expr = self.factor()
 
         while self.match(T.PLUS, T.MINUS):
-            logging.debug("Generating term")
             op = self.previous()
             expr = Binary(expr, op, self.factor())
         return expr
 
     def factor(self) -> Expr:
-        logging.debug("Factor")
 
         expr = self.unary()
 
         while self.match(T.SLASH, T.STAR):
-            logging.debug("Generating factor")
             op = self.previous()
             expr = Binary(expr, op, self.unary())
         return expr
 
     def unary(self):
-        logging.debug("Unary")
         if self.match(T.BANG, T.MINUS):
-            logging.debug("Generating unary")
             op = self.previous()
             return Unary(op, self.unary())
-        return self.primary()
+        return self.call()
+
+    def call(self):
+        expr = self.primary()
+
+        while (True):
+            if (self.match(T.LEFT_PAREN)):
+                expr = self.finish_call(expr)
+            else:
+                break
+        
+        return expr
+
+    def finish_call(self, callee:Expr):
+        args = []
+        if not self.check(T.RIGHT_PAREN):
+            while True:
+                if (len(args) >= 255):
+                    self.error(self.peek(), "Calls do not support more than 255 arguments.")
+                args.append(self.expression())
+                if not self.match(T.COMMA):
+                    break
+
+        paren = self.consume(T.RIGHT_PAREN, "Expected ')' after arguments")
+
+        return Call(callee, paren, args)
+            
+
 
     def primary(self):
-        logging.debug("Generated Primary")
         if self.match(T.FALSE):
             return Literal(False)
         if self.match(T.TRUE):

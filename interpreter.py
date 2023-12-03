@@ -1,20 +1,32 @@
+from typing import cast
 from tokenType import TokenType as T
 from tokens import Token
-from expr import Assign, Variable as VarExpr, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping, Logical
-from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block, If, While, Break
-from error_handler import LoxRuntimeError, runtime_error
+from expr import Assign, Variable as VarExpr, Visitor as ExprVisitor, Expr, Literal, Unary, Binary, Grouping, Logical, Call
+from stmt import ExpressionStmt, Print, Var as VarStmt, Visitor as StmtVisitor, Stmt, Block, If, While, Break, Function, Return
+from error_handler import LoxRuntimeError, runtime_error, BreakException, ReturnException
 from environment import Environment
+from  lox_callable import LoxCallable, LoxFunction 
+from native import Clock
 import logging
 
-class BreakException(RuntimeError): # Used to jump if `break` encountered.
-    pass
+# class BreakException(RuntimeError): # Used to jump if `break` encountered.
+#     pass
+
+# class ReturnException(RuntimeError):
+#     def __init__(self, value: object):
+#         self.value = value
 
 class Interpreter(ExprVisitor, StmtVisitor):
-    environment = Environment()
+
+    def __init__(self):
+        self.globals = Environment()
+        self.environment = self.globals
+        self.globals.define("clock", Clock())
 
     def interpret(self, statements: list[Stmt]) -> None:
         try:
             for statement in statements:
+                logging.debug(f"Executing {statement.to_string()}")
                 self.execute(statement)
         except LoxRuntimeError as error:
             runtime_error(error)
@@ -110,6 +122,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visitExpressionStmt(self, stmt: ExpressionStmt) -> None:
         self.evaluate(stmt.expression)
         return None
+    
+    def visitFunctionStmt(self, stmt: Function) -> None:
+        function = LoxFunction(stmt)
+        self.environment.define(stmt.name.LEXEME, function)
+        return None
 
     def visitIfStmt(self, stmt: If) -> None:
         condition = self.is_truthy(self.evaluate(stmt.condition))
@@ -125,6 +142,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         value = self.evaluate(stmt.expression)
         print(self.stringify(value))
         return None
+
+    def visitReturnStmt(self, stmt: Return) -> None:
+        value = None
+
+        if stmt.value:
+            value = self.evaluate(stmt.value)
+        
+        raise ReturnException(value)
 
     def visitVarStmt(self, stmt: VarStmt) -> None:
         value = None
@@ -234,3 +259,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
         # Unreachable
         return None
+    
+    def visitCallExpr(self, call: Call):
+        callee = self.evaluate(call.callee)
+
+        if not isinstance(callee, LoxCallable):
+            raise LoxRuntimeError(call.paren, "Can only call functions or classes.")
+        
+        args = [self.evaluate(arg) for arg in call.arguments]
+
+        function = cast(LoxCallable, callee)
+        if len(args) != function.arity():
+            raise LoxRuntimeError(call.paren, f"Expected {function.arity()} args but got {len(args)} args.")
+        return function.call(self, args)
+
+

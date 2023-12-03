@@ -43,3 +43,12 @@ class BreakException(SyntaxError):
         self.token = token
         self.message = message
         self.SyntaxError = SyntaxError(message)
+
+# These are not actual errors but instead used to jump around call stack. However, to avoid circular imports they are in this file and not `interpreter.py`
+
+class BreakException(RuntimeError): # Used to jump if `break` encountered.
+    pass
+
+class ReturnException(RuntimeError):
+    def __init__(self, value: object):
+        self.value = value

@@ -35,6 +35,17 @@ class Binary(Expr):
     def to_string(self):
         return f"Binary({self.left.to_string()}, {self.operator.to_string()}, {self.right.to_string()})"
 
+class Call(Expr):
+    def __init__(self, callee: Expr, paren: Token, arguments: list[Expr]):
+        self.callee = callee
+        self.paren = paren
+        self.arguments = arguments
+    
+    def accept(self, visitor: Visitor):
+        return visitor.visitCallExpr(self)
+    
+    def to_string(self):
+        return f"Call({self.callee.to_string()}, {[arg.to_string() for arg in self.arguments]})"
 
 class Grouping(Expr):
     def __init__(self, expression: Expr):
@@ -115,3 +126,9 @@ class Visitor:
 
     @abstractmethod
     def visitLogicalExpr(self, expr: Logical): pass
+
+    @abstractmethod
+    def visitCallExpr(self, expr: Call): pass
+
+    @abstractmethod
+    def visitFunctionExpr(self, expr: Function): pass

@@ -33,6 +33,18 @@ class ExpressionStmt(Stmt):
     def to_string(self) -> str:
         return f"ExprStmt({self.expression.to_string()})"
 
+class Function(Stmt):
+    def __init__(self, name: Token, params: list[Token], body: list[Stmt]):
+        self.name = name
+        self.params = params
+        self.body = body
+
+    def accept(self, visitor: Visitor):
+        return visitor.visitFunctionStmt(self)
+
+    def to_string(self):
+        return f"<function>" 
+
 
 class If(Stmt):
     def __init__(self, condition: Expr, then_branch: Stmt, else_branch: Stmt | None):
@@ -57,6 +69,16 @@ class Print(Stmt):
     def to_string(self) -> str:
         return f"Print({self.expression.to_string()})"
 
+class Return(Stmt):
+    def __init__(self, keyword: Token, value: Expr | None):
+        self.keyword = keyword
+        self.value = value
+
+    def accept(self, visitor: Visitor):
+        return visitor.visitReturnStmt(self)
+    
+    def to_string(self) -> str:
+        return f"Return()"
 
 class Var(Stmt):
     def __init__(self, name: Token, initializer: Expr | None):
@@ -111,3 +133,9 @@ class Visitor:
 
     @abstractmethod
     def visitBreakStmt(self, stmt: Break): pass
+
+    @abstractmethod
+    def visitFunctionStmt(self, stmt: Function): pass
+
+    @abstractmethod
+    def visitReturnStmt(self, stmt: Return): pass
